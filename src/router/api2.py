@@ -132,19 +132,21 @@ async def text_to_speech(text: TextInput, request: Request):
         if tts_model is None:
             raise HTTPException(status_code=503, detail="TTS model not loaded.")
 
-        profile = (text.profile_name or "").strip().lower()
-        cond_path = VOICE_PROFILE_PATH / profile / "conditionals.pt"
+        profiles = getattr(request.app.state, "voice_profiles", {})
+        # profile_id = {"harry": "1", "sophie": "2"}.get(text.profile_name.lower(), "2")
+        profile_data = profiles.get(text.profile_name.lower(), "sophie")
+        cond_path = profile_data.get("cond_path")
 
-        if not cond_path.exists():
+        if not cond_path or not os.path.exists(cond_path):
             raise HTTPException(status_code=404, detail="Voice profile conditionals not found.")
 
         return StreamingResponse(
-            tts_generate_stream(tts_model, text, str(cond_path)),
+            tts_generate_stream(tts_model, text, cond_path),
             media_type="audio/wav"
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
+    
 
 @router.post("/text_to_speech")
 async def text_to_speech(text: TextInput, request: Request):
@@ -153,39 +155,42 @@ async def text_to_speech(text: TextInput, request: Request):
         if tts_model is None:
             raise HTTPException(status_code=503, detail="TTS model not loaded.")
 
-        profile = (text.profile_name or "").strip().lower()
-        cond_path = VOICE_PROFILE_PATH / profile / "conditionals.pt"
+        profiles = getattr(request.app.state, "voice_profiles", {})
+        # profile_id = {"harry": "1", "sophie": "2"}.get(text.profile_name.lower(), "2")
+        profile_data = profiles.get(text.profile_name.lower(), "sophie")
+        cond_path = profile_data.get("cond_path")
 
-        if not cond_path.exists():
+        if not cond_path or not os.path.exists(cond_path):
             raise HTTPException(status_code=404, detail="Voice profile conditionals not found.")
 
-        buf = await tts_generate(tts_model, text, str(cond_path))
+        buf = await tts_generate(tts_model, text, cond_path)
         return StreamingResponse(buf, media_type="audio/wav")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/speech_to_speech")
-async def speech_to_speech(request: Request, file: UploadFile = File(...), profile_name: str = Form(...),):
+async def speech_to_speech(request: Request,file: UploadFile = File(...),profile_name: str = Form(...),):
     try:
         vc_model = request.app.state.vc_model
         if vc_model is None:
             raise HTTPException(status_code=503, detail="VC model not loaded.")
         
-        profile = (profile_name or "").strip().lower()
-        cond_path = VOICE_PROFILE_PATH / profile / "conditionals.pt"
+        profiles = getattr(request.app.state, "voice_profiles", {})
+        profile_data = profiles.get(profile_name.lower(), "sophie")
 
-        if not cond_path.exists():
+        cond_path = profile_data.get("cond_path")
+        if not cond_path or not os.path.exists(cond_path):
             raise HTTPException(status_code=404, detail=f"Voice profile conditionals not found.")
 
-        buf = await run_vc_generate(vc_model, file, str(cond_path))
+        buf = await run_vc_generate(vc_model, file, cond_path)
         return StreamingResponse(buf, media_type="audio/wav")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/voice_save")
-async def voice_save(request: Request, file: UploadFile = File(...), profile_name: str = Form(...),):
+async def voice_save(request: Request,file: UploadFile = File(...),profile_name: str = Form(...),):
     if not file.filename.endswith((".wav", ".mp3", ".flac", ".aac")):
         raise HTTPException(status_code=400, detail="Unsupported file format")
 
@@ -194,8 +199,7 @@ async def voice_save(request: Request, file: UploadFile = File(...), profile_nam
         raise HTTPException(status_code=503, detail="TTS model not loaded.")
 
     # Save user-specific prompt
-    profile = (profile_name or "").strip().lower()
-    user_dir = VOICE_PROFILE_PATH / profile
+    user_dir = VOICE_PROFILE_PATH / profile_name
     user_dir.mkdir(parents=True, exist_ok=True)
     ext = Path(file.filename).suffix or ".wav"
     audio_path = user_dir / f"active_prompt{ext}"
@@ -205,16 +209,25 @@ async def voice_save(request: Request, file: UploadFile = File(...), profile_nam
 
     # Pre-compute and save conditionals ONCE during save
     try:
-        print(f"Pre-computing conditionals for profile {profile}...")
+        print(f"Pre-computing conditionals for profile {profile_name}...")
+        # Generate conditionals once and save them
         cond_path = user_dir / "conditionals.pt"
         tts_model.prepare_conditionals(str(audio_path), exaggeration=0.5)
         tts_model.conds.save(cond_path)
         print(f"Conditionals saved to {cond_path}")
+        
+        # Update app state with both paths
+        if not hasattr(request.app.state, "voice_profiles"):
+            request.app.state.voice_profiles = {}
+        request.app.state.voice_profiles[profile_name] = {
+            "audio_path": str(audio_path),
+            "cond_path": str(cond_path)
+        }
 
         payload = {
-            "status": 10,
-            "message": "Voice profile saved with precomputed conditionals",
-            "profile_name": profile
+            "status": 10, 
+            "message": "Voice profile saved with precomputed conditionals", 
+            "profile_name": profile_name
         }
         return JSONResponse(content=payload, status_code=200)
         

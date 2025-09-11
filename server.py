@@ -19,35 +19,12 @@ async def lifespan_manager(app: FastAPI):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     app.state.tts_model = ChatterboxTTS.from_pretrained(device)
     app.state.vc_model = ChatterboxVC.from_pretrained(device)
-    
-    # Load existing voice profiles from disk
-    app.state.voice_profiles = {}
-    if VOICE_PROFILE_PATH.exists():
-        for user_dir in VOICE_PROFILE_PATH.iterdir():
-            if user_dir.is_dir():
-                profile_id = user_dir.name
-                audio_path = user_dir / "active_prompt.wav"  # Check for .wav first
-                if not audio_path.exists():
-                    # Check for other extensions
-                    for ext in [".mp3", ".flac", ".aac"]:
-                        audio_path = user_dir / f"active_prompt{ext}"
-                        if audio_path.exists():
-                            break
-                
-                cond_path = user_dir / "conditionals.pt"
-                
-                if audio_path.exists():
-                    profile_data = {"audio_path": str(audio_path)}
-                    if cond_path.exists():
-                        profile_data["cond_path"] = str(cond_path)
-                    app.state.voice_profiles[profile_id] = profile_data
-                    print(f"Loaded voice profile: {profile_id}")
-    
+
+    # Do not cache voice profiles in memory; always use local directory
     print(f"TTS model loaded on device: {device}")
     print("Current working directory:", os.getcwd())
     print("VOICE_PROFILE_PATH:", VOICE_PROFILE_PATH.resolve())
     print("Voice Profile Path Exists:", VOICE_PROFILE_PATH.exists())
-    print(f"Loaded {len(app.state.voice_profiles)} voice profiles")
     yield
     print("Application shutting down...")
 
@@ -72,27 +49,42 @@ async def root():
 
 @app.get("/voice_profiles")
 async def list_voice_profiles(request: Request):
-    profiles = getattr(request.app.state, "voice_profiles", {})
+    profiles = []
+    if VOICE_PROFILE_PATH.exists():
+        for user_dir in VOICE_PROFILE_PATH.iterdir():
+            if user_dir.is_dir():
+                profiles.append(user_dir.name)
     return {
         "count": len(profiles),
-        "profiles": list(profiles.keys())
+        "profiles": profiles
     }
 
 @app.get("/voice_profiles/{profile_name}/audio")
 async def get_profile_audio(profile_name: str, request: Request):
-    profiles = getattr(request.app.state, "voice_profiles", {})
-    profile = profiles.get(profile_name)
-    if not profile or "audio_path" not in profile:
-        return {"error": "Profile or audio not found"}, 404
-    return FileResponse(profile["audio_path"], media_type="audio/wav")
+    user_dir = VOICE_PROFILE_PATH / profile_name
+    if not user_dir.exists() or not user_dir.is_dir():
+        return {"error": "Profile not found"}, 404
+
+    # Look for supported audio files in order
+    audio_path = user_dir / "active_prompt.wav"
+    if not audio_path.exists():
+        for ext in [".mp3", ".flac", ".aac"]:
+            candidate = user_dir / f"active_prompt{ext}"
+            if candidate.exists():
+                audio_path = candidate
+                break
+
+    if not audio_path.exists():
+        return {"error": "Audio not found"}, 404
+
+    # Serve with a reasonable default type; browser can often auto-detect
+    media_type = "audio/wav" if audio_path.suffix.lower() == ".wav" else "application/octet-stream"
+    return FileResponse(str(audio_path), media_type=media_type)
 
 @app.delete("/voice_profiles/{profile_name}")
 async def delete_profile(profile_name: str, request: Request):
-    profiles = getattr(request.app.state, "voice_profiles", {})
-    profile = profiles.get(profile_name)
-    if not profile:
+    profile_dir = VOICE_PROFILE_PATH / profile_name
+    if not profile_dir.exists() or not profile_dir.is_dir():
         return {"error": "Profile not found"}, 404
-    profile_dir = os.path.join("voice_profiles", profile_name)
     shutil.rmtree(profile_dir)
-    del profiles[profile_name]
     return {"message": "Profile deleted"}
