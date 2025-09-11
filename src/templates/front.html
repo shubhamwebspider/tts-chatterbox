@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Test to Speech</title>
+  <title>Text to Speech</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -52,7 +52,22 @@
 
     .audio-wrap { margin-top: 12px; background: #0b1220; border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
     audio { width: 100%; height: 36px; }
-
+    textarea {
+      background: #0b1220;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      outline: none;
+      transition: border .2s ease, box-shadow .2s ease;
+      font-family: inherit;
+      font-size: 15px;
+      resize: vertical;
+    }
+    textarea:focus {
+      border-color: #334155;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, .15);
+    }
     .toast { position: fixed; right: 20px; bottom: 20px; background: #1f2937; color: var(--text); border: 1px solid var(--border); border-left: 4px solid var(--primary); padding: 12px 14px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.35); display: none; min-width: 260px; }
     .toast.success { border-left-color: var(--success); }
     .toast.error { border-left-color: var(--danger); }
@@ -66,7 +81,7 @@
     <header>
       <div class="brand-logo"></div>
       <div>
-        <h1>Test to Speech</h1>
+        <h1>Text to Speech</h1>
         <div class="subtitle">Generate speech with adjustable parameters</div>
       </div>
     </header>
@@ -78,15 +93,18 @@
 
       <div class="form-group">
         <label for="ttsText">Text</label>
-        <input type="text" id="ttsText" placeholder="Type something..." value="Hello, this is a test.">
+        <textarea id="ttsText" placeholder="Type something..." rows="4" style="resize:vertical; min-height:60px; font-size:15px;">Hello, this is a Voice Test.</textarea>
       </div>
 
       <div class="form-group">
         <label for="ttsProfile">Voice Profile</label>
-        <select id="ttsProfile">
-          <option value="harry">Harry</option>
-          <option value="sophie" selected>Sophie</option>
-        </select>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <select id="ttsProfile"></select>
+          <!-- <button type="button" id="btnPlayProfile" title="Play original voice" onclick="playProfileAudio()" style="padding: 6px 10px; font-size: 15px;">
+            ▶️
+          </button> -->
+        </div>
+        <audio id="profileAudio" style="margin-top: 6px; width: 100%;" controls hidden></audio>
       </div>
 
       <!-- Advanced Options -->
@@ -201,6 +219,21 @@
       el.load();
     }
 
+    async function loadProfiles() {
+      const res = await fetch('/voice_profiles');
+      if (!res.ok) return;
+      const data = await res.json();
+      ttsProfileSel.innerHTML = '';
+      data.profiles.forEach(profile => {
+        let opt = document.createElement('option');
+        opt.value = profile;
+        opt.textContent = profile.charAt(0).toUpperCase() + profile.slice(1);
+        ttsProfileSel.appendChild(opt);
+      });
+      updateProfileAudio();
+    }
+    window.addEventListener('DOMContentLoaded', loadProfiles);
+
     const _generateTTS = withLoading(btnTTS, async function() {
       const text = document.getElementById('ttsText').value.trim();
       const profile = ttsProfileSel.value;
@@ -250,7 +283,9 @@
       if (response.ok) {
         const data = await response.json();
         showToast(`Saved profile "${data.profile_name}".`, 'success');
-        addProfileToDropdown(data.profile_name);
+        await loadProfiles();
+        ttsProfileSel.value = data.profile_name;
+        updateProfileAudio();
         resetSaveForm();
       } else {
         showToast(`Save failed: ${await response.text()}`, 'error');
@@ -264,17 +299,30 @@
       document.getElementById('profileFile').value = '';
     }
 
-    function addProfileToDropdown(profileName) {
-      // Check if profile already exists
-      let exists = Array.from(ttsProfileSel.options).some(opt => opt.value === profileName);
-      if (!exists) {
-        let opt = document.createElement('option');
-        opt.value = profileName;
-        opt.textContent = profileName.charAt(0).toUpperCase() + profileName.slice(1);
-        ttsProfileSel.appendChild(opt);
+    // === Added functions for playing original voice ===
+    function updateProfileAudio() {
+      const profile = document.getElementById('ttsProfile').value;
+      const audio = document.getElementById('profileAudio');
+      if (!profile) {
+        audio.hidden = true;
+        audio.src = '';
+        return;
       }
-      ttsProfileSel.value = profileName; // select new one
+      audio.src = `/voice_profiles/${profile}/audio`;
+      audio.hidden = false;
     }
+
+    function playProfileAudio() {
+      const audio = document.getElementById('profileAudio');
+      if (audio.src) {
+        audio.play();
+      }
+    }
+
+    document.getElementById('ttsProfile').addEventListener('change', updateProfileAudio);
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(updateProfileAudio, 500);
+    });
   </script>
 </body>
 </html>

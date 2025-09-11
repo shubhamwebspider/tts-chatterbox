@@ -189,25 +189,6 @@ async def speech_to_speech(request: Request,file: UploadFile = File(...),profile
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Fetch voice to play
-@router.get("/voice_fetch")
-async def voice_fetch(request: Request, profile_name: str = Query(...)):
-    try:
-        vc_model = request.app.state.vc_model
-        if vc_model is None:
-            raise HTTPException(status_code=503, detail="VC model not loaded.")
-        
-        profiles = getattr(request.app.state, "voice_profiles", {})
-        profile_data = profiles.get(profile_name.lower(), "sophie")
-        audio_path = profile_data.get("audio_path")
-        if not audio_path or not os.path.exists(audio_path):
-            raise HTTPException(status_code=404, detail=f"Voice profile audio not found.")
-        
-        return FileResponse(path=audio_path, media_type="audio/wav", filename=os.path.basename(audio_path))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.post("/voice_save")
 async def voice_save(request: Request,file: UploadFile = File(...),profile_name: str = Form(...),):
     if not file.filename.endswith((".wav", ".mp3", ".flac", ".aac")):

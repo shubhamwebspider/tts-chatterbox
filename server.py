@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from src.chatterbox.tts import ChatterboxTTS
 from src.chatterbox.vc import ChatterboxVC
 from src.router import api,front_api
@@ -75,3 +76,11 @@ async def list_voice_profiles(request: Request):
         "count": len(profiles),
         "profiles": list(profiles.keys())
     }
+
+@app.get("/voice_profiles/{profile_name}/audio")
+async def get_profile_audio(profile_name: str, request: Request):
+    profiles = getattr(request.app.state, "voice_profiles", {})
+    profile = profiles.get(profile_name)
+    if not profile or "audio_path" not in profile:
+        return {"error": "Profile or audio not found"}, 404
+    return FileResponse(profile["audio_path"], media_type="audio/wav")
