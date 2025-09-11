@@ -7,6 +7,7 @@ from src.router import api,front_api
 import torch
 from contextlib import asynccontextmanager
 import os
+import shutil
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -84,3 +85,14 @@ async def get_profile_audio(profile_name: str, request: Request):
     if not profile or "audio_path" not in profile:
         return {"error": "Profile or audio not found"}, 404
     return FileResponse(profile["audio_path"], media_type="audio/wav")
+
+@app.delete("/voice_profiles/{profile_name}")
+async def delete_profile(profile_name: str, request: Request):
+    profiles = getattr(request.app.state, "voice_profiles", {})
+    profile = profiles.get(profile_name)
+    if not profile:
+        return {"error": "Profile not found"}, 404
+    profile_dir = os.path.join("voice_profiles", profile_name)
+    shutil.rmtree(profile_dir)
+    del profiles[profile_name]
+    return {"message": "Profile deleted"}
