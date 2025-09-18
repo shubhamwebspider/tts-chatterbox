@@ -14,3 +14,8 @@ fastapi[standard]
 uvloop
 gunicorn
 torchcodec
+num2words
+pykakasi
+tqdm>=4.64.0
+langdetect
+tensorboardX
