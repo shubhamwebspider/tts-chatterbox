@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗣️</text></svg>">
+  <title>Text to Speech</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg:#0f172a; --bg-soft:#111827; --card:#111827; --muted:#9ca3af; --text:#e5e7eb; --primary:#6366f1; --primary-light:#818cf8; --primary-dark:#4f46e5; --primary-gradient:linear-gradient(135deg,#6366f1,#8b5cf6); --secondary-accent:#8b5cf6; --success:#10b981; --danger:#ef4444; --border:#1f2937; }
+    *{box-sizing:border-box}
+    html, body { height:auto; min-height:100vh; overflow:auto; }
+    body{margin:0;padding:0;font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--text);background:radial-gradient(1200px 800px at 20% -10%, rgba(31,41,55,.3) 0, transparent 60%), radial-gradient(1000px 700px at 100% 0%, rgba(31,41,55,.2) 0, transparent 60%), var(--bg);min-height:100vh;line-height:1.6}
+    .container{max-width:900px;margin:0 auto;padding:16px 8px;min-height:100vh;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;box-sizing:border-box}
+    header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+    nav{display:flex;gap:8px;margin-bottom:12px}
+    .nav-btn{border:1px solid var(--border);background:rgba(17,24,39,.6);color:var(--text);padding:7px 10px;border-radius:10px;font-weight:500;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+    .nav-btn.active{border-color:var(--primary);box-shadow:0 0 0 2px rgba(99,102,241,.15)}
+    .brand-logo{width:38px;height:38px;background:var(--primary-gradient);border-radius:12px;box-shadow:0 10px 30px rgba(99,102,241,.25);position:relative;overflow:hidden}
+    .brand-logo::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:20px;height:20px;background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M3.5 18.49l6.26 2.86c.66.3 1.44.3 2.1 0l6.26-2.86A2 2 0 0019.5 17V7a2 2 0 00-1.12-1.79l-6.26-2.86a2.08 2.08 0 00-2.1 0L3.62 5.21A2 2 0 002.5 7v10a2 2 0 001 1.49zM11.5 12.5v-5h2v5a1 1 0 11-2 0zm0 3h2v2h-2v-2z"/></svg>') no-repeat center;background-size:contain;opacity:.8}
+    h1{font-size:26px;font-weight:700;margin:0;letter-spacing:-.5px;background:linear-gradient(to right,var(--text),var(--primary-light));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .subtitle{color:var(--muted);font-size:13px;font-weight:400;margin-top:4px;line-height:1.5}
+    .card{background:rgba(17,24,39,.85);border:1px solid rgba(31,41,55,.6);border-radius:16px;padding:14px;box-shadow:0 8px 32px rgba(0,0,0,.2);backdrop-filter:blur(8px);margin-bottom:10px;display:block} /* removed flex:1 1 auto */
+    .card h2{margin-bottom:10px;font-size:18px}
+    .card p.hint{margin:4px 0 12px;color:var(--muted);font-size:13px;line-height:1.5}
+    .form-row{gap:8px;margin-bottom:8px}
+    /* UPDATED: Re-enabled grid layout for side-by-side options */
+    @media(min-width:640px){.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}}
+    .form-group{display:flex;flex-direction:column;align-items:stretch;width:100%;gap:6px;margin-bottom:10px}
+    label{font-size:13px;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:6px}
+    textarea,input[type="text"],input[type="number"],select{padding:8px 12px;font-size:14px}
+    input[type="text"],input[type="number"],select,textarea{background:#0b1220;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:8px 12px;outline:none;transition:all .25s ease;font-family:inherit;font-size:14px}
+    input[type="text"]:focus,input[type="number"]:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.25);background:#111a2a}
+    input[type="text"]:hover,input[type="number"]:hover,select:hover,textarea:hover{border-color:var(--primary-light)}
+    .actions {display:flex;justify-content:flex-start;gap:12px;margin-top:10px}
+    button{padding:7px 12px;font-size:13px;border:0;background:var(--primary-gradient);color:#fff;padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:600;letter-spacing:.3px;display:inline-flex;align-items:center;gap:8px;transition:all .2s ease;font-size:14px;box-shadow:0 4px 15px rgba(99,102,241,.3)}
+    button.secondary{background:transparent;color:var(--text);border:1px solid var(--border);font-weight:500;box-shadow:none}
+    button.secondary:hover{background:rgba(31,41,55,.5);border-color:var(--primary-light)}
+    button:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(99,102,241,.4)}
+    button[disabled]{opacity:.6;cursor:not-allowed;transform:none}
+    .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .audio-wrap{margin-top:10px;background:#0b1220;border:1px solid var(--border);border-radius:12px;padding:10px;transition:all .3s ease}
+    .audio-wrap:hover{border-color:var(--primary);box-shadow:0 0 0 2px rgba(99,102,241,.1)}
+    audio{width:100%}
+    .toggle-advanced{font-size:13px;color:var(--primary);cursor:pointer;margin-top:10px;user-select:none;display:inline-flex;align-items:center;gap:8px;font-weight:500;transition:color .2s ease;background:none;padding:0;border:none}
+    .toggle-advanced:hover{color:var(--primary-light)}
+    .toggle-advanced svg{width:24px;height:24px;stroke:var(--primary);fill:none;stroke-width:2px;transition:transform .3s ease,stroke .2s ease}
+    .toggle-advanced.active svg{transform:rotate(45deg);}
+    .advanced{display:none;margin-top:12px;padding-top:12px;border-top:1px dashed rgba(31,41,55,.5)}
+    .advanced.active{display:block}
+    .advanced.active + .toggle-advanced svg{transform:rotate(45deg)}
+    .profile-selector-wrapper{display:flex;align-items:center;gap:8px}
+    .icon-btn { padding: 7px; background: transparent; border: 1px solid var(--border); box-shadow: none; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; }
+    .icon-btn svg { width: 20px; height: 20px; stroke: var(--muted); fill: none; stroke-width: 2px; transition: stroke .2s ease; }
+    .icon-btn:not([disabled]):hover svg { stroke: var(--text); }
+    .icon-btn .icon-pause { display: none; }
+    .icon-btn.playing .icon-play { display: none; }
+    .icon-btn.playing .icon-pause { display: block; }
+    #btnDeleteProfile[disabled]{opacity:.6}
+    .slider-container{display:flex;align-items:center;gap:10px}
+    .slider-value{font-size:13px;color:var(--text);background:#0b1220;padding:3px 7px;border-radius:6px;border:1px solid var(--border);min-width:40px;text-align:center;font-variant-numeric:tabular-nums}
+    input[type="range"]{appearance:none;width:100%;height:14px;background:transparent;cursor:pointer}
+    input[type="range"]::-webkit-slider-runnable-track{height:5px;background:#0b1220;border:1px solid var(--border);border-radius:6px}
+    input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;margin-top:-5px;width:14px;height:14px;background:var(--primary);border-radius:50%;border:2px solid var(--bg)}
+    input[type="range"]::-moz-range-track{height:5px;background:#0b1220;border:1px solid var(--border);border-radius:6px}
+    input[type="range"]::-moz-range-thumb{width:12px;height:12px;background:var(--primary);border-radius:50%;border:2px solid var(--bg)}
+    .toast{position:fixed;right:16px;bottom:-100px;background:#1f2937;color:var(--text);border:1px solid var(--border);border-left:4px solid var(--primary);padding:10px 14px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.4);min-width:180px;opacity:0;transition:transform .4s ease,opacity .4s ease;z-index:1000}
+    .toast.show{transform:translateY(-90px);opacity:1}
+    .toast.success{border-left-color:var(--success);background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.3)}
+    .toast.error{border-left-color:var(--danger);background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3)}
+    .waveform { position: relative; width: 100%; height: 48px; margin-top: 6px; border: 1px solid var(--border); border-radius: 10px; background: linear-gradient(180deg, rgba(17,24,39,.65), rgba(15,23,42,.65)); overflow: hidden; box-shadow: inset 0 0 0 1px rgba(99,102,241,0.05); cursor: pointer; }
+    .waveform:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    .waveform::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(400px 80px at 20% -50%, rgba(99,102,241,.08), transparent 60%), radial-gradient(400px 80px at 80% 150%, rgba(139,92,246,.06), transparent 60%); }
+    .waveform canvas { display: block; width: 100%; height: 100%; }
+    .audio-wrap.compact { display: grid; gap: 6px; }
+    .player-controls { display: flex; align-items: center; gap: 8px; }
+    .play-btn { width: 32px; height: 32px; border-radius: 8px; border: 0; background: var(--primary-gradient); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(99,102,241,.3); }
+    .play-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(99,102,241,.4); }
+    .play-btn:active { transform: translateY(0); }
+    .time { font-size: 11px; color: var(--muted); margin-left: 4px; min-width: 54px; }
+    /* NEW: Tooltip styles for advanced option labels */
+    .tooltip-label { position: relative; cursor: help; }
+    .tooltip-label::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-bottom: 8px;
+      background: var(--bg-soft);
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1.4;
+      width: max-content;
+      max-width: 280px;
+      text-align: center;
+      z-index: 10;
+      box-shadow: 0 4px 12px rgba(0,0,0,.3);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity .2s ease, visibility .2s ease;
+    }
+    .tooltip-label:hover::after {
+      opacity: 1;
+      visibility: visible;
+    }
+    @media (max-width: 600px) {
+      .container{padding:4px 2px}
+      .audio-wrap.compact{padding:4px 2px}
+      .waveform{height:24px}
+      .time{font-size:10px;min-width:38px}
+    }
+    @media (max-height: 740px) {
+      .container{padding:8px 4px}
+      header{margin-bottom:6px}
+      .card{padding:8px;margin-bottom:6px}
+      .card h2{margin-bottom:6px;font-size:15px}
+      textarea#ttsText{min-height:48px}
+      .waveform{height:24px}
+      .play-btn{width:24px;height:24px}
+      .time{font-size:10px;min-width:38px}
+    }
+    @media (max-height: 600px) {
+      h1{font-size:18px}
+      .subtitle{display:none}
+      nav{margin-bottom:6px;gap:4px}
+      .card{padding:6px}
+      .card h2{font-size:13px;margin-bottom:4px}
+      textarea#ttsText{min-height:32px}
+      .audio-wrap.compact{padding:4px 4px;margin-top:4px}
+      .waveform{height:16px}
+      .play-btn{width:18px;height:18px}
+      .time{font-size:9px;min-width:28px}
+    }
+    @media (max-width: 600px) {
+      .container{padding:8px 2px}
+      .profile-selector-wrapper{gap:4px}
+    }
+    @media (max-width: 400px) {
+      .container{padding:4px 2px}
+      .card{padding:4px}
+      textarea#ttsText{min-height:24px}
+      .profile-selector-wrapper{flex-direction:column;align-items:stretch}
+    }
+    html, body { overflow:auto !important; height:auto; }
+    body::-webkit-scrollbar{width:0;height:0}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand-logo"></div>
+      <div>
+        <h1>Text to Speech</h1>
+        <div class="subtitle">Generate natural-sounding speech with adjustable parameters</div>
+      </div>
+    </header>
+    <nav>
+      <a class="nav-btn active" href="/voice_clone_front/generate">Generate</a>
+      <a class="nav-btn" href="/voice_clone_front/save">Save Profile</a>
+    </nav>
+
+    <section class="card">
+      <h2>Text → Speech</h2>
+      <p class="hint">Enter text, pick a voice, and optionally adjust advanced parameters for fine-tuning.</p>
+
+      <div class="form-group">
+        <label for="ttsText">Text</label>
+        <textarea id="ttsText" placeholder="Type something..." rows="4" style="resize:vertical; min-height:80px;">Welcome to the world of Text to Speech.</textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="ttsProfile">Voice Profile</label>
+        <div class="profile-selector-wrapper">
+          <select id="ttsProfile" style="flex:1;"></select>
+          <button id="btnPreviewProfile" class="icon-btn" title="Preview selected profile" aria-label="Preview profile">
+            <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            <svg class="icon-pause" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+          </button>
+          <button id="btnDeleteProfile" class="icon-btn" title="Delete selected profile" aria-label="Delete profile">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+          </button>
+          <audio id="profileAudio" style="display:none"></audio>
+        </div>
+      </div>
+
+      <div class="toggle-advanced" onclick="toggleAdvanced()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        Advanced Options
+      </div>
+      <div class="advanced" id="advancedOptions">
+        <!-- UPDATED: Wrapped form groups in form-rows for side-by-side layout -->
+        <div class="form-row">
+          <div class="form-group">
+            <!-- UPDATED: Added tooltip-label class and data-tooltip attribute -->
+            <label for="temperature" class="tooltip-label" data-tooltip="Controls randomness. Higher values create more expressive but less predictable speech. Lower values are more consistent.">Temperature (Creativity / Variability)</label>
+            <div class="slider-container">
+              <input type="range" id="temperature" value="0.8" min="0.05" max="5.0" step="0.01">
+              <span class="slider-value">0.8</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="exaggeration" class="tooltip-label" data-tooltip="How expressive the speech is. Higher values increase the emotional range and intonation.">Exaggeration (How expressive the speech is)</label>
+            <div class="slider-container">
+              <input type="range" id="exaggeration" value="0.5" min="0.25" max="2.0" step="0.01">
+              <span class="slider-value">0.5</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cfgWeight" class="tooltip-label" data-tooltip="Clarity vs. Pace. Higher values make speech clearer and more deliberate, but can sound robotic. Lower values are faster and more natural-sounding.">CFG Weight (Clarity vs. Pace)</label>
+            <div class="slider-container">
+              <input type="range" id="cfgWeight" value="0.5" min="0.0" max="1.0" step="0.01">
+              <span class="slider-value">0.5</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="seedNum" class="tooltip-label" data-tooltip="A specific number to ensure the same audio output every time for the same text. Set to 0 for a random output.">Seed Number (Random seed, 0=random)</label>
+            <input type="number" id="seedNum" value="0" min="0" step="1">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="minP" class="tooltip-label" data-tooltip="A technical parameter related to model confidence. Adjust only if you are an expert.">Min P (Model confidence)</label>
+            <div class="slider-container">
+              <input type="range" id="minP" value="0.05" min="0.0" max="1.0" step="0.01">
+              <span class="slider-value">0.05</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="topP" class="tooltip-label" data-tooltip="Controls randomness by limiting the pool of next possible words. Lower values make speech less random. 1.0 is default.">Top P (Randomness)</label>
+            <div class="slider-container">
+              <input type="range" id="topP" value="1.0" min="0.0" max="1.0" step="0.01">
+              <span class="slider-value">1.0</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="repPenalty" class="tooltip-label" data-tooltip="Discourages the model from repeating words or phrases. Higher values increase the penalty.">Repetition Penalty (Discourages repetition)</label>
+            <div class="slider-container">
+              <input type="range" id="repPenalty" value="1.2" min="1.0" max="2.0" step="0.01">
+              <span class="slider-value">1.2</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btnTTS"><span>Generate Speech</span></button>
+        <button class="secondary" id="btnClearAudio">Clear</button>
+      </div>
+
+      <div class="audio-wrap compact" id="audioWrap" style="padding:10px 14px; margin-top:16px; display:none;">
+        <div style="display:flex;align-items:center;gap:16px;width:100%;">
+          <button id="btnPlay" class="play-btn" title="Play/Pause" aria-label="Play" style="margin-right:8px;min-width:40px;min-height:40px;">▶</button>
+          <div id="waveContainer" class="waveform" 
+               tabindex="0" 
+               role="slider" 
+               aria-label="Audio seek bar"
+               aria-valuemin="0"
+               aria-valuemax="0"
+               aria-valuenow="0"
+               aria-valuetext="00:00"
+               style="flex:1;min-width:0;max-width:100%;height:48px;">
+            <canvas id="ttsWave"></canvas>
+          </div>
+          <div class="time" style="margin-left:12px;min-width:70px;white-space:nowrap;font-size:13px;">
+            <span id="curTime">00:00</span> / <span id="durTime">00:00</span>
+          </div>
+        </div>
+        <audio id="ttsAudio" preload="metadata" style="display:none"></audio>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    (function() {
+      // --- DOM Element Caching ---
+      const btnTTS = document.getElementById('btnTTS');
+      const btnClearAudio = document.getElementById('btnClearAudio');
+      const ttsProfileSel = document.getElementById('ttsProfile');
+      const btnDeleteProfile = document.getElementById('btnDeleteProfile');
+      const btnPreviewProfile = document.getElementById('btnPreviewProfile');
+      const profileAudio = document.getElementById('profileAudio');
+      const advancedOptions = document.getElementById('advancedOptions');
+      const ttsAudio = document.getElementById('ttsAudio');
+      const btnPlay = document.getElementById('btnPlay');
+      const curTimeEl = document.getElementById('curTime');
+      const durTimeEl = document.getElementById('durTime');
+      const waveContainer = document.getElementById('waveContainer');
+      const ttsWaveCanvas = document.getElementById('ttsWave');
+      const toastEl = document.getElementById('toast');
+      
+      const PROTECTED_PROFILES = ['harry', 'sophie'];
+
+      // --- Add toggleAdvanced function for advanced options ---
+      window.toggleAdvanced = function() {
+        const adv = document.getElementById('advancedOptions');
+        const btn = document.querySelector('.toggle-advanced');
+        adv.classList.toggle('active');
+        btn.classList.toggle('active', adv.classList.contains('active'));
+      };
+
+      // --- Web Audio API State ---
+      let audioCtx;
+      let ttsViz = { raf: null, analyser: null, source: null, canvas: null, ctx: null };
+
+      // --- Utility Functions ---
+      function showToast(msg, type = 'info') {
+        toastEl.className = 'toast';
+        if (type === 'success') toastEl.classList.add('success');
+        if (type === 'error') toastEl.classList.add('error');
+        toastEl.textContent = msg;
+        toastEl.classList.add('show');
+        setTimeout(() => toastEl.classList.remove('show'), 3000);
+      }
+
+      function withLoading(btn, fn) {
+        return async (...args) => {
+          const orig = btn.innerHTML;
+          btn.disabled = true;
+          btn.innerHTML = '<span class="spinner"></span><span>Working...</span>';
+          try {
+            await fn(...args);
+          } catch (e) {
+            console.error(e);
+            showToast(e.message || 'Operation failed', 'error');
+          } finally {
+            btn.disabled = false;
+            btn.innerHTML = orig;
+          }
+        };
+      }
+
+      function clearAudio() {
+        ttsAudio.removeAttribute('src');
+        ttsAudio.load();
+        curTimeEl.textContent = '00:00';
+        durTimeEl.textContent = '00:00';
+        btnPlay.textContent = '▶';
+        btnPlay.setAttribute('aria-label', 'Play');
+        stopWaveDraw();
+        if (ttsViz.ctx) {
+            const rect = ttsWaveCanvas.getBoundingClientRect();
+            ttsViz.ctx.clearRect(0, 0, rect.width, rect.height);
+        }
+        document.getElementById('audioWrap').style.display = 'none';
+      }
+
+      // --- Core Application Logic ---
+      async function loadProfiles() {
+        try {
+          const res = await fetch('/voice_profiles');
+          if (!res.ok) throw new Error('Failed to load profiles');
+          const data = await res.json();
+          ttsProfileSel.innerHTML = '';
+          if (data.profiles.length === 0) {
+            const opt = document.createElement('option');
+            opt.textContent = 'No profiles found';
+            opt.disabled = true;
+            ttsProfileSel.appendChild(opt);
+          } else {
+            data.profiles.forEach(p => {
+              const opt = document.createElement('option');
+              opt.value = p;
+              opt.textContent = p.charAt(0).toUpperCase() + p.slice(1);
+              ttsProfileSel.appendChild(opt);
+            });
+          }
+          handleProfileChange();
+        } catch (e) {
+          console.error(e);
+          showToast('Could not load voice profiles.', 'error');
+        }
+      }
+
+      const generateTTS = withLoading(btnTTS, async function() {
+        const text = (document.getElementById('ttsText').value || '').trim();
+        const profile = ttsProfileSel.value;
+        if (!text) { showToast('Please enter text.', 'error'); return; }
+        if (!profile) { showToast('Please select a voice profile.', 'error'); return; }
+
+        const body = {
+          text,
+          profile_name: profile,
+          exaggeration: parseFloat(document.getElementById('exaggeration').value),
+          cfg_weight: parseFloat(document.getElementById('cfgWeight').value),
+          temperature: parseFloat(document.getElementById('temperature').value),
+          seed_num: parseInt(document.getElementById('seedNum').value),
+          min_p: parseFloat(document.getElementById('minP').value),
+          top_p: parseFloat(document.getElementById('topP').value),
+          repetition_penalty: parseFloat(document.getElementById('repPenalty').value)
+        };
+
+        const resp = await fetch('/voice_clone/text_to_speech', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (!resp.ok) { const t = await resp.text(); showToast(`Generation failed: ${t}`, 'error'); return; }
+        
+        const blob = await resp.blob();
+        ttsAudio.src = URL.createObjectURL(blob);
+        showToast('Speech generated successfully.', 'success');
+        ensureTTSSignalChain(ttsAudio);
+        document.getElementById('audioWrap').style.display = '';
+      });
+
+      const deleteProfile = withLoading(btnDeleteProfile, async function() {
+        const profile = ttsProfileSel.value;
+        if (!profile || PROTECTED_PROFILES.includes(profile)) {
+          showToast('This profile cannot be deleted.', 'error');
+          return;
+        }
+        if (!confirm(`Delete profile "${profile}"? This cannot be undone.`)) return;
+        
+        profileAudio.pause();
+        profileAudio.removeAttribute('src');
+        profileAudio.load();
+        btnPreviewProfile.classList.remove('playing');
+        
+        const r = await fetch(`/voice_profiles/${profile}`, { method: 'DELETE' });
+        if (r.ok) {
+          showToast(`Profile "${profile}" deleted.`, 'success');
+          await loadProfiles();
+        } else {
+          showToast(`Deletion failed: ${await r.text()}`, 'error');
+        }
+      });
+
+      function handleProfileChange() {
+        const profile = ttsProfileSel.value;
+        const hasProfile = !!profile;
+        if (btnPreviewProfile) btnPreviewProfile.disabled = !hasProfile;
+        const isProtected = !profile || PROTECTED_PROFILES.includes(profile);
+        btnDeleteProfile.disabled = isProtected;
+        btnDeleteProfile.title = isProtected ? 'This is a protected profile and cannot be deleted.' : `Delete profile "${profile}` + '"';
+        profileAudio.pause();
+        profileAudio.removeAttribute('src');
+        profileAudio.load();
+        btnPreviewProfile.classList.remove('playing');
+      }
+
+      // --- Custom Player + Waveform Visualizer ---
+      function fmtTime(t) {
+        if (!isFinite(t)) return '00:00';
+        const m = Math.floor(t / 60);
+        const s = Math.floor(t % 60);
+        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      }
+
+      function resizeCanvasForDPR(canvas) {
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = Math.floor(rect.width * dpr);
+        canvas.height = Math.floor(rect.height * dpr);
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return ctx;
+      }
+
+      function ensureTTSSignalChain(audioEl) {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (!ttsViz.source) {
+          ttsViz.source = audioCtx.createMediaElementSource(audioEl);
+          ttsViz.analyser = audioCtx.createAnalyser();
+          ttsViz.analyser.fftSize = 1024;
+          ttsViz.analyser.smoothingTimeConstant = 0.85;
+          ttsViz.source.connect(ttsViz.destination || audioCtx.destination);
+          ttsViz.source.connect(ttsViz.analyser);
+        }
+      }
+
+      function drawWaveformWithProgress() {
+        if (!ttsAudio || !ttsWaveCanvas || !ttsViz.analyser) return;
+        ttsViz.canvas = ttsWaveCanvas;
+        ttsViz.ctx = resizeCanvasForDPR(ttsWaveCanvas);
+        const analyser = ttsViz.analyser; const ctx = ttsViz.ctx; const freqLen = analyser.frequencyBinCount; const data = new Uint8Array(freqLen);
+        function draw() {
+          ttsViz.raf = requestAnimationFrame(draw);
+          analyser.getByteFrequencyData(data);
+          const rect = ttsWaveCanvas.getBoundingClientRect();
+          const width = rect.width; const height = rect.height;
+          ctx.clearRect(0, 0, width, height);
+          const gradient = ctx.createLinearGradient(0, 0, 0, height);
+          gradient.addColorStop(0, '#818cf8'); gradient.addColorStop(.5, '#6366f1'); gradient.addColorStop(1, '#3b82f6');
+          ctx.fillStyle = gradient;
+          const barCount = Math.min(100, Math.floor(width / 6)); const step = Math.max(1, Math.floor(freqLen / barCount)); const barW = Math.max(2, (width - (barCount - 1) * 4) / barCount);
+          let x = 0;
+          for (let i = 0; i < barCount; i++) {
+            const v = data[i * step] / 255; const h = Math.max(2, v * (height - 6)); const y = (height - h) / 2; const r = Math.min(6, barW / 2, h / 2);
+            ctx.beginPath(); ctx.moveTo(x, y + r); ctx.arcTo(x, y, x + r, y, r); ctx.lineTo(x + barW - r, y); ctx.arcTo(x + barW, y, x + barW, y + r, r); ctx.lineTo(x + barW, y + h - r); ctx.arcTo(x + barW, y + h, x + barW - r, y + h, r); ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r); ctx.closePath(); ctx.fill();
+            x += barW + 4;
+          }
+          const prog = (ttsAudio.duration && isFinite(ttsAudio.duration)) ? (ttsAudio.currentTime / ttsAudio.duration) : 0;
+          if (prog > 0) { ctx.fillStyle = 'rgba(99,102,241,0.14)'; ctx.fillRect(0, 0, Math.max(0, Math.min(width, width * prog)), height); }
+          ctx.strokeStyle = 'rgba(129,140,248,0.12)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, height / 2); ctx.lineTo(width, height / 2); ctx.stroke();
+        }
+        cancelAnimationFrame(ttsViz.raf); draw();
+      }
+
+      function stopWaveDraw() { if (ttsViz.raf) cancelAnimationFrame(ttsViz.raf); }
+
+      // --- Event Listener Setup ---
+      function initialize() {
+        btnTTS.addEventListener('click', generateTTS);
+        btnClearAudio.addEventListener('click', clearAudio);
+        btnDeleteProfile.addEventListener('click', deleteProfile);
+        ttsProfileSel.addEventListener('change', handleProfileChange);
+
+        document.querySelectorAll('input[type="range"]').forEach(slider => {
+          const valueSpan = slider.nextElementSibling;
+          if (valueSpan && valueSpan.classList.contains('slider-value')) {
+            valueSpan.textContent = slider.value;
+            slider.addEventListener('input', () => { valueSpan.textContent = slider.value; });
+          }
+        });
+
+        if (btnPreviewProfile) {
+          btnPreviewProfile.addEventListener('click', async () => {
+            const profile = ttsProfileSel.value;
+            if (!profile) return;
+            try {
+              if (profileAudio.paused) {
+                if (!profileAudio.src || !profileAudio.src.includes(`/voice_profiles/${profile}/audio`)) {
+                  profileAudio.src = `/voice_profiles/${profile}/audio?t=${Date.now()}`;
+                }
+                await profileAudio.play();
+              } else {
+                profileAudio.pause();
+              }
+            } catch (e) {
+              console.error(e);
+              showToast('Unable to preview profile.', 'error');
+            }
+          });
+          profileAudio.addEventListener('play', () => btnPreviewProfile.classList.add('playing'));
+          profileAudio.addEventListener('pause', () => btnPreviewProfile.classList.remove('playing'));
+          profileAudio.addEventListener('ended', () => btnPreviewProfile.classList.remove('playing'));
+        }
+
+        btnPlay.addEventListener('click', async () => {
+          if (!ttsViz.source) { showToast("Generate speech first.", "info"); return; }
+          try { if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume(); } catch (_) {}
+          if (ttsAudio.paused) { ttsAudio.play(); } else { ttsAudio.pause(); }
+        });
+
+        ttsAudio.addEventListener('play', () => { btnPlay.textContent = '⏸'; btnPlay.setAttribute('aria-label', 'Pause'); drawWaveformWithProgress(); });
+        ttsAudio.addEventListener('pause', () => { btnPlay.textContent = '▶'; btnPlay.setAttribute('aria-label', 'Play'); stopWaveDraw(); });
+        ttsAudio.addEventListener('ended', () => { btnPlay.textContent = '▶'; btnPlay.setAttribute('aria-label', 'Play'); stopWaveDraw(); });
+
+        ttsAudio.addEventListener('loadedmetadata', () => {
+          const duration = ttsAudio.duration;
+          durTimeEl.textContent = fmtTime(duration);
+          curTimeEl.textContent = fmtTime(0);
+          waveContainer.setAttribute('aria-valuemax', duration);
+        });
+
+        ttsAudio.addEventListener('timeupdate', () => {
+          const currentTime = ttsAudio.currentTime;
+          curTimeEl.textContent = fmtTime(currentTime);
+          waveContainer.setAttribute('aria-valuenow', currentTime);
+          waveContainer.setAttribute('aria-valuetext', `${fmtTime(currentTime)} of ${fmtTime(ttsAudio.duration)}`);
+        });
+
+        let isSeeking = false;
+        function seekFromEvent(ev) {
+          if (!isFinite(ttsAudio.duration)) return;
+          const rect = ttsWaveCanvas.getBoundingClientRect();
+          const x = (ev.clientX ?? (ev.touches && ev.touches[0]?.clientX)) - rect.left;
+          const pct = Math.max(0, Math.min(1, x / rect.width));
+          ttsAudio.currentTime = pct * ttsAudio.duration;
+        }
+
+        waveContainer.addEventListener('mousedown', (e) => { isSeeking = true; seekFromEvent(e); });
+        waveContainer.addEventListener('mousemove', (e) => { if (isSeeking) seekFromEvent(e); });
+        document.addEventListener('mouseup', () => { isSeeking = false; });
+        waveContainer.addEventListener('touchstart', (e) => { isSeeking = true; seekFromEvent(e); });
+        waveContainer.addEventListener('touchmove', (e) => { if (isSeeking) seekFromEvent(e); });
+        document.addEventListener('touchend', () => { isSeeking = false; });
+
+        waveContainer.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                e.preventDefault();
+                if (!isFinite(ttsAudio.duration)) return;
+                const step = Math.min(5, ttsAudio.duration * 0.05);
+                const newTime = ttsAudio.currentTime + (e.key === 'ArrowRight' ? step : -step);
+                ttsAudio.currentTime = Math.max(0, Math.min(ttsAudio.duration, newTime));
+            }
+        });
+
+        window.addEventListener('keydown', (e) => { if (e.code === 'Space' && document.activeElement.tagName !== 'TEXTAREA') { e.preventDefault(); btnPlay.click(); } });
+        
+        new ResizeObserver(() => {
+            if (ttsViz.analyser && !ttsAudio.paused) {
+                drawWaveformWithProgress();
+            }
+        }).observe(waveContainer);
+
+        loadProfiles();
+      }
+
+      window.addEventListener('DOMContentLoaded', initialize);
+    })();
+  </script>
+</body>
+</html>

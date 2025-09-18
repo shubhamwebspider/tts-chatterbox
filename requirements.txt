@@ -13,3 +13,4 @@ safetensors==0.5.3
 fastapi[standard]
 uvloop
 gunicorn
+torchcodec

@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗣️</text></svg>">
+  <title>Save Voice Profile</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg:#0f172a; --bg-soft:#111827; --card:#111827; --muted:#9ca3af; --text:#e5e7eb; --primary:#6366f1; --primary-light:#818cf8; --primary-dark:#4f46e5; --primary-gradient:linear-gradient(135deg,#6366f1,#8b5cf6); --secondary-accent:#8b5cf6; --success:#10b981; --danger:#ef4444; --border:#1f2937; }
+    *{box-sizing:border-box}
+    body{margin:0;padding:0;font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--text);background:radial-gradient(1200px 800px at 20% -10%, rgba(31,41,55,.3) 0, transparent 60%), radial-gradient(1000px 700px at 100% 0%, rgba(31,41,55,.2) 0, transparent 60%), var(--bg);min-height:100vh;line-height:1.6}
+    .container{
+      max-width:900px;
+      margin:0 auto;
+      padding:16px 8px; /* MATCH tts_generate.html */
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      overflow-y:auto;
+      overflow-x:hidden;
+      box-sizing:border-box;
+    }
+    header{
+      display:flex;
+      align-items:center;
+      gap:12px; /* MATCH tts_generate.html */
+      margin-bottom:12px; /* MATCH tts_generate.html */
+    }
+    nav{
+      display:flex;
+      gap:8px;
+      margin-bottom:12px; /* MATCH tts_generate.html */
+    }
+    .nav-btn{border:1px solid var(--border);background:rgba(17,24,39,.6);color:var(--text);padding:7px 10px;border-radius:10px;font-weight:500;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+    .nav-btn.active{border-color:var(--primary);box-shadow:0 0 0 2px rgba(99,102,241,.15)}
+    .brand-logo{width:38px;height:38px;background:var(--primary-gradient);border-radius:12px;box-shadow:0 10px 30px rgba(99,102,241,.25);position:relative;overflow:hidden}
+    .brand-logo::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:20px;height:20px;background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M3.5 18.49l6.26 2.86c.66.3 1.44.3 2.1 0l6.26-2.86A2 2 0 0019.5 17V7a2 2 0 00-1.12-1.79l-6.26-2.86a2.08 2.08 0 00-2.1 0L3.62 5.21A2 2 0 002.5 7v10a2 2 0 001 1.49zM11.5 12.5v-5h2v5a1 1 0 11-2 0zm0 3h2v2h-2v-2z"/></svg>') no-repeat center;background-size:contain;opacity:.8}
+    h1{font-size:26px;font-weight:700;margin:0;letter-spacing:-.5px;background:linear-gradient(to right,var(--text),var(--primary-light));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .subtitle{color:var(--muted);font-size:13px;font-weight:400;margin-top:4px;line-height:1.5}
+    .card{background:rgba(17,24,39,.85);border:1px solid rgba(31,41,55,.6);border-radius:16px;padding:14px;box-shadow:0 8px 32px rgba(0,0,0,.2);backdrop-filter:blur(8px);margin-bottom:10px;display:block}
+    .card h2{margin-bottom:10px;font-size:18px}
+    .card p.hint{margin:4px 0 12px;color:var(--muted);font-size:13px;line-height:1.5}
+    .form-row{display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px}
+    @media(min-width:640px){.form-row{grid-template-columns:1fr 1fr;gap:20px}}
+    .form-group{display:flex;flex-direction:column;gap:8px}
+    label{font-size:14px;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:6px}
+    input[type="text"],input[type="file"]{background:#0b1220;color:var(--text);border:1px solid var(--border);border-radius:12px;padding:12px 16px;outline:none;transition:all .25s ease;font-family:inherit;font-size:15px}
+    input[type="text"]:focus,input[type="file"]:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.25);background:#111a2a}
+    input[type="text"]:hover,input[type="file"]:hover{border-color:var(--primary-light)}
+    .actions{
+      display:flex;
+      gap:12px; /* MATCH tts_generate.html */
+      margin-top:10px; /* MATCH tts_generate.html */
+      flex-wrap:wrap;
+      justify-content:flex-start; /* MATCH tts_generate.html */
+    }
+    button{border:0;background:var(--primary-gradient);color:#fff;padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:600;letter-spacing:.3px;display:inline-flex;align-items:center;gap:10px;transition:all .2s ease;font-size:14px;box-shadow:0 4px 15px rgba(99,102,241,.3)}
+    button.secondary{background:transparent;color:var(--text);border:1px solid var(--border);font-weight:500;box-shadow:none}
+    button.secondary:hover{background:rgba(31,41,55,.5);border-color:var(--primary-light)}
+    button[disabled]{opacity:.6;cursor:not-allowed;transform:none}
+    .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .audio-wrap{
+      margin-top:10px; /* MATCH tts_generate.html */
+      background:#0b1220;
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px; /* MATCH tts_generate.html */
+      transition:all .3s ease
+    }
+    .audio-wrap:hover{border-color:var(--primary);box-shadow:0 0 0 2px rgba(99,102,241,.1)}
+    audio{width:100%}
+    .file-input-wrapper{display:flex;align-items:center;gap:12px}
+    #btnRecord{flex-shrink:0;padding-left:16px;padding-right:16px}
+    #btnRecord.is-recording{background:var(--danger);border-color:var(--danger);color:#fff;box-shadow:0 4px 15px rgba(239,68,68,.3)}
+    #recorderWaveWrap {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .recorder-waveform {
+      position: relative;
+      width: 120px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(17,24,39,.65), rgba(15,23,42,.65));
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px rgba(99,102,241,0.05);
+    }
+    .recorder-waveform canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .recorder-timer {
+      font-size: 14px;
+      color: var(--primary-light);
+      min-width: 48px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      background: #0b1220;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 8px;
+    }
+    .toast{position:fixed;right:24px;bottom:-100px;background:#1f2937;color:var(--text);border:1px solid var(--border);border-left:4px solid var(--primary);padding:16px 20px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.4);min-width:280px;opacity:0;transition:transform .4s ease,opacity .4s ease;z-index:1000}
+    .toast.show{transform:translateY(-124px);opacity:1}
+    .toast.success{border-left-color:var(--success);background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.3)}
+    .toast.error{border-left-color:var(--danger);background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3)}
+    .note {
+      margin-top: 16px;
+      padding: 12px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 10px;
+      color: var(--success);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    /* --- Recorded Audio Player Styles --- */
+    #recordedAudioWrap {
+      display: none;
+      margin-top: 18px;
+      background: #0b1220;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 16px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(99,102,241,0.08);
+    }
+    #recordedAudioWrap.active { display: block; }
+    .rec-play-controls {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+    }
+    .rec-play-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 0;
+      background: var(--primary-gradient);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(99,102,241,.15);
+      font-size: 18px;
+      transition: all .2s;
+    }
+    .rec-play-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(99,102,241,.18); }
+    .rec-play-btn:active { transform: translateY(0); }
+    .rec-waveform {
+      position: relative;
+      width: 120px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(17,24,39,.65), rgba(15,23,42,.65));
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px rgba(99,102,241,0.05);
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .rec-waveform canvas { display: block; width: 100%; height: 100%; }
+    .rec-audio-timer {
+      font-size: 14px;
+      color: var(--primary-light);
+      min-width: 48px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      background: #0b1220;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand-logo"></div>
+      <div>
+        <h1>Save Voice Profile</h1>
+        <div class="subtitle">Upload or record a short voice sample, then name and save it.</div>
+      </div>
+    </header>
+    <nav>
+      <a class="nav-btn" href="/voice_clone_front/generate">Generate</a>
+      <a class="nav-btn active" href="/voice_clone_front/save">Save Profile</a>
+    </nav>
+
+    <section class="card">
+      <h2>Save New Voice Profile</h2>
+      <p class="hint">Upload a voice sample and give it a simple name (e.g., "alice", "bob").</p>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="profileName">Profile Name</label>
+          <input type="text" id="profileName" placeholder="e.g., alice" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="profileFile">Voice Sample (.wav, .mp3, .flac, .aac)</label>
+          <div class="file-input-wrapper">
+            <input type="file" id="profileFile" accept="audio/*">
+            <button type="button" id="btnRecord" class="secondary" title="Record audio" onclick="handleRecording()">
+              <span>Record</span>
+            </button>
+          </div>
+          <div id="recorderWaveWrap">
+            <div class="recorder-waveform"><canvas id="recorderWave"></canvas></div>
+            <span class="recorder-timer" id="recorderTimer">00:00</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="waveformBarWrap" style="display:none; margin-bottom:18px;">
+        <div class="rec-play-controls">
+          <button id="wavePlayBtn" class="rec-play-btn" title="Play/Pause" aria-label="Play" style="display:none;">▶</button>
+          <div class="rec-waveform"><canvas id="waveformBar"></canvas></div>
+          <span class="rec-audio-timer" id="waveformTimer">00:00</span>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btnSave" onclick="saveProfile()"><span>Save Profile</span></button>
+        <button class="secondary" onclick="resetSaveForm()">Reset</button>
+      </div>
+
+      <div id="recordedAudioWrap">
+        <div class="rec-play-controls">
+          <button id="recPlayBtn" class="rec-play-btn" title="Play/Pause" aria-label="Play">▶</button>
+          <div class="rec-waveform"><canvas id="recWave"></canvas></div>
+          <span class="rec-audio-timer" id="recAudioTimer">00:00</span>
+        </div>
+        <audio id="recordedAudio" preload="metadata" style="display:none"></audio>
+      </div>
+
+      <div class="note" id="saveHint">Tip: Upload voice around 10 - 20 seconds and use lowercase letters and avoid spaces for best compatibility.</div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const btnSave = document.getElementById('btnSave');
+
+    function showToast(msg,type='info'){const el=document.getElementById('toast');el.className='toast';if(type==='success')el.classList.add('success');if(type==='error')el.classList.add('error');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3000)}
+    function withLoading(btn,fn){return async(...args)=>{const orig=btn.innerHTML;btn.disabled=true;btn.innerHTML='<span class="spinner"></span><span>Working...</span>';try{await fn(...args)}catch(e){console.error(e);showToast(e.message||'Operation failed','error')}finally{btn.disabled=false;btn.innerHTML=orig}}}
+
+    function resetSaveForm(){
+      document.getElementById('profileName').value='';
+      document.getElementById('profileFile').value='';
+      // Use only the unified waveform bar above the Save button
+      hideWaveformBar();
+    }
+
+    // --- Unified Waveform Bar Logic ---
+    let mediaRecorder, audioChunks=[], isRecording=false, audioStream;
+    let audioBlob=null, audioUrl=null, audioBuffer=null;
+    let audioCtx, analyser, source, animId, startTime;
+    let playbackAudio, playbackMode=false;
+
+    function showWaveformBar(mode) {
+      const wrap = document.getElementById('waveformBarWrap');
+      const playBtn = document.getElementById('wavePlayBtn');
+      wrap.style.display = 'block';
+      if (mode === 'record') {
+        playBtn.style.display = 'none';
+        playbackMode = false;
+      } else if (mode === 'playback') {
+        playBtn.style.display = 'inline-flex';
+        playbackMode = true;
+      }
+    }
+    function hideWaveformBar() {
+      const wrap = document.getElementById('waveformBarWrap');
+      wrap.style.display = 'none';
+      stopWaveformAnim();
+      if (audioCtx) { try { audioCtx.close(); } catch(_){} audioCtx = null; }
+      if (playbackAudio) { playbackAudio.pause(); playbackAudio = null; }
+      document.getElementById('waveformTimer').textContent = '00:00';
+    }
+    function resizeWaveformCanvas(canvas) {
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return ctx;
+    }
+    function drawWaveformAnim() {
+      const canvas = document.getElementById('waveformBar');
+      if (!analyser || !canvas) return;
+      const ctx = resizeWaveformCanvas(canvas);
+      const freqLen = analyser.frequencyBinCount;
+      const data = new Uint8Array(freqLen);
+      function draw() {
+        animId = requestAnimationFrame(draw);
+        analyser.getByteFrequencyData(data);
+        const rect = canvas.getBoundingClientRect();
+        const width = rect.width, height = rect.height;
+        ctx.clearRect(0, 0, width, height);
+        const grad = ctx.createLinearGradient(0, 0, 0, height);
+        grad.addColorStop(0, '#818cf8'); grad.addColorStop(.5, '#6366f1'); grad.addColorStop(1, '#3b82f6');
+        ctx.fillStyle = grad;
+        const barCount = Math.min(40, Math.floor(width / 5));
+        const step = Math.max(1, Math.floor(freqLen / barCount));
+        const barW = Math.max(2, (width - (barCount - 1) * 2) / barCount);
+        let x = 0;
+        for (let i = 0; i < barCount; i++) {
+          const v = data[i * step] / 255;
+          const h = Math.max(2, v * (height - 6));
+          const y = (height - h) / 2;
+          const r = Math.min(4, barW / 2, h / 2);
+          ctx.beginPath(); ctx.moveTo(x, y + r); ctx.arcTo(x, y, x + r, y, r); ctx.lineTo(x + barW - r, y); ctx.arcTo(x + barW, y, x + barW, y + r, r); ctx.lineTo(x + barW, y + h - r); ctx.arcTo(x + barW, y + h, x + barW - r, y + h, r); ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r); ctx.closePath(); ctx.fill();
+          x += barW + 2;
+        }
+      }
+      cancelAnimationFrame(animId); draw();
+    }
+    function stopWaveformAnim() { cancelAnimationFrame(animId); }
+    function updateWaveformTimer(t) {
+      const el = document.getElementById('waveformTimer');
+      el.textContent = fmtRecTime(t);
+    }
+    function fmtRecTime(t) {
+      const m = Math.floor(t / 60);
+      const s = Math.floor(t % 60);
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    // --- PCM to WAV encoder ---
+    function encodeWAV(samples, sampleRate) {
+      function floatTo16BitPCM(output, offset, input) {
+        for (let i = 0; i < input.length; i++, offset += 2) {
+          let s = Math.max(-1, Math.min(1, input[i]));
+          s = s < 0 ? s * 0x8000 : s * 0x7FFF;
+          output.setInt16(offset, s, true);
+        }
+      }
+      const buffer = new ArrayBuffer(44 + samples.length * 2);
+      const view = new DataView(buffer);
+      view.setUint32(0, 0x52494646, false);
+      view.setUint32(4, 36 + samples.length * 2, true);
+      view.setUint32(8, 0x57415645, false);
+      view.setUint32(12, 0x666d7420, false);
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      view.setUint32(36, 0x64617461, false);
+      view.setUint32(40, samples.length * 2, true);
+      floatTo16BitPCM(view, 44, samples);
+      return new Blob([view], { type: 'audio/wav' });
+    }
+
+    const saveProfile = withLoading(btnSave, async function(){
+      const profileName=(document.getElementById('profileName').value||'').trim().toLowerCase();
+      const fileInput=document.getElementById('profileFile');const file=fileInput.files[0];
+      if(!file||!profileName){showToast('Please provide a profile name and an audio file.','error');return}
+      const formData=new FormData();formData.append('file',file);formData.append('profile_name',profileName);
+      const response=await fetch('/voice_clone/voice_save',{method:'POST',body:formData});
+      if(response.ok){const data=await response.json();showToast(`Saved profile "${data.profile_name}".`,'success');resetSaveForm()}else{showToast(`Save failed: ${await response.text()}`,'error')}
+    });
+
+    function pickSupportedMimeType() {
+      const candidates = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/ogg'
+      ];
+      if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) return '';
+      return candidates.find(t => MediaRecorder.isTypeSupported(t)) || '';
+    }
+
+    async function handleRecording(){
+      const btn=document.getElementById('btnRecord');const label=btn.querySelector('span');
+      // Feature detection
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showToast('Recording unavailable: use HTTPS or localhost; browser must support getUserMedia.','error');
+        return;
+      }
+      if (typeof MediaRecorder === 'undefined') {
+        showToast('Recording unavailable: MediaRecorder not supported in this browser.','error');
+        return;
+      }
+
+      // Clean up previous context and animation
+      if (audioCtx) { try { audioCtx.close(); } catch(_){} audioCtx = null; }
+      stopWaveformAnim();
+      document.getElementById('waveformTimer').textContent = '00:00';
+
+      if(isRecording){
+        showToast('Stopping recording...','info');
+        try { mediaRecorder && mediaRecorder.state !== 'inactive' && mediaRecorder.stop(); } catch(_){ }
+        try { audioStream && audioStream.getTracks().forEach(t=>t.stop()); } catch(_){ }
+        isRecording=false;btn.classList.remove('is-recording');label.textContent='Record';
+        return;
+      }
+
+      try{
+        showToast('Requesting microphone...','info');
+        label.textContent = 'Requesting...';
+        audioStream=await navigator.mediaDevices.getUserMedia({
+          audio: {
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+        isRecording=true;btn.classList.add('is-recording');label.textContent='Stop';audioChunks=[];
+        showWaveformBar('record');
+
+        audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+        try { if (audioCtx.state === 'suspended') await audioCtx.resume(); } catch(_){ }
+        source = audioCtx.createMediaStreamSource(audioStream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.85;
+        source.connect(analyser);
+        drawWaveformAnim();
+
+        startTime = Date.now();
+        (function updateTimer(){ if (!isRecording) return; updateWaveformTimer(Math.floor((Date.now() - startTime) / 1000)); setTimeout(updateTimer, 200); })();
+
+        const mimeType = pickSupportedMimeType();
+        mediaRecorder = mimeType ? new MediaRecorder(audioStream, { mimeType }) : new MediaRecorder(audioStream);
+        mediaRecorder.ondataavailable=e=>{ if (e.data && e.data.size) audioChunks.push(e.data); };
+        mediaRecorder.onerror = (ev) => { console.error('MediaRecorder error:', ev.error || ev); showToast('Recorder error. Try a different browser.','error'); };
+        mediaRecorder.onstop=async()=>{
+          try{
+            const outType = mimeType || (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm';
+            audioBlob=new Blob(audioChunks,{type: outType});
+            // For upload convert to WAV
+            const arrayBuffer=await audioBlob.arrayBuffer();
+            const tmpCtx=new (window.AudioContext||window.webkitAudioContext)();
+            const decoded=await tmpCtx.decodeAudioData(arrayBuffer);
+            const pcm=decoded.getChannelData(0);
+            const wavBlob=encodeWAV(pcm,decoded.sampleRate);
+            const wavFile=new File([wavBlob],'recording.wav',{type:'audio/wav'});
+            const dt=new DataTransfer(); dt.items.add(wavFile);
+            document.getElementById('profileFile').files=dt.files;
+
+            // Preview using the unified waveform bar above the Save button
+            showWaveformBar('playback');
+            setupPlaybackWaveform(audioBlob);
+            showToast('Recording ready for upload.','success');
+          }catch(err){ console.error(err); showToast('Failed to prepare recording.','error'); }
+        };
+        mediaRecorder.start();
+        showToast('Recording started. Speak now...','success');
+      }catch(err){
+        console.error(err);
+        let msg = (err && err.message) ? err.message : 'Microphone access failed.';
+        if (err && err.name === 'NotAllowedError') msg = 'Microphone permission denied. Allow access and retry.';
+        else if (err && err.name === 'NotFoundError') msg = 'No microphone found.';
+        else if (/secure context|https|localhost/i.test(msg)) msg = 'Use HTTPS or localhost to enable microphone.';
+        showToast(msg,'error');
+        isRecording=false;btn.classList.remove('is-recording');label.textContent='Record';hideWaveformBar();
+      }
+    }
+
+    function setupPlaybackWaveform(blob) {
+      if (audioCtx) { try { audioCtx.close(); } catch(_){} audioCtx = null; }
+      stopWaveformAnim();
+      if (playbackAudio) { playbackAudio.pause(); playbackAudio = null; }
+      playbackAudio = new Audio();
+      playbackAudio.src = URL.createObjectURL(blob);
+      playbackAudio.load();
+      audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      source = audioCtx.createMediaElementSource(playbackAudio);
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.85;
+      source.connect(analyser);
+      source.connect(audioCtx.destination);
+      drawWaveformAnim();
+      document.getElementById('wavePlayBtn').onclick = async function() {
+        try { if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume(); } catch(_){ }
+        if (playbackAudio.paused) { playbackAudio.play(); this.textContent = '⏸'; } else { playbackAudio.pause(); this.textContent = '▶'; }
+      };
+      playbackAudio.onplay = () => { document.getElementById('wavePlayBtn').textContent = '⏸'; drawWaveformAnim(); };
+      playbackAudio.onpause = () => { document.getElementById('wavePlayBtn').textContent = '▶'; stopWaveformAnim(); };
+      playbackAudio.onended = () => { document.getElementById('wavePlayBtn').textContent = '▶'; stopWaveformAnim(); };
+      playbackAudio.ontimeupdate = () => updateWaveformTimer(Math.floor(playbackAudio.currentTime));
+      playbackAudio.onloadedmetadata = () => updateWaveformTimer(0);
+    }
+
+    function initRecordUI(){
+      // Removed explicit click binding for btnRecord; using inline onclick to avoid missed bindings
+      const fileInput = document.getElementById('profileFile');
+      if (fileInput && !fileInput.__binded) {
+        fileInput.addEventListener('change', (e)=>{
+          const f=e.target.files[0];
+          if(f){
+            // Preview the selected file using the unified waveform bar
+            showWaveformBar('playback');
+            setupPlaybackWaveform(f);
+          } else {
+            hideWaveformBar();
+          }
+        });
+        fileInput.__binded = true;
+      }
+      const playBtn = document.getElementById('wavePlayBtn');
+      if (playBtn) playBtn.style.display = 'none';
+    }
+
+    // Initialize listeners regardless of loading timing
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', initRecordUI);
+    } else {
+      initRecordUI();
+    }
+  </script>
+</body>
+</html>
